@@ -2,7 +2,9 @@ const fs = require("fs");
 const readline = require("readline");
 const { google } = require("googleapis");
 var moment = require("moment");
-
+const meow = require("meow");
+const cli = meow("Usage");
+var input = cli.input;
 // If modifying these scopes, delete token.json.
 const SCOPES = ["https://www.googleapis.com/auth/calendar"];
 const TOKEN_PATH = "token.json";
@@ -11,7 +13,7 @@ const TOKEN_PATH = "token.json";
 fs.readFile("credentials.json", (err, content) => {
   if (err) return console.log("Error loading client secret file:", err);
   // Authorize a client with credentials, then call the Google Calendar API.
-  authorize(JSON.parse(content), listEvents);
+  authorize(JSON.parse(content), main);
 });
 
 /**
@@ -71,19 +73,14 @@ function getAccessToken(oAuth2Client, callback) {
  * Lists the next 10 events on the user's primary calendar.
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  */
-function listEvents(auth) {
+function createEvents(auth,starttime,endtime) {
   const calendar = google.calendar({ version: "v3", auth });
-  var starttime = moment();
-  var endtime = starttime.clone().add(1, "hour");
-  starttime.format();
-  endtime.format();
   var email = "ccmr@cesar.school";
   const timeZone = "America/Bahia";
-
   var event = {
-    summary: "OI THIAGO",
-    location: "77 Cais do Apolo, Recife, PE",
-    description: "TESTE",
+    summary: "AGENDAMENTO COM O 'PLOT'",
+    location: "Tiradentes ->  SALA X",
+    description: "SALA AGENDADA PELO 'PLOT'",
     start: {
       dateTime: starttime,
       timeZone: timeZone
@@ -102,7 +99,6 @@ function listEvents(auth) {
       ]
     }
   };
-
   calendar.events.insert(
     {
       auth: auth,
@@ -116,9 +112,15 @@ function listEvents(auth) {
         );
         return;
       }
+
       console.log("Event created: %s", event.htmlLink);
     }
   );
+}
+
+function listEvents(auth) {
+  const calendar = google.calendar({ version: "v3", auth });
+  var time0 = null;
   calendar.events.list(
     {
       calendarId: "primary",
@@ -132,6 +134,8 @@ function listEvents(auth) {
       const events = res.data.items;
       if (events.length) {
         console.log("Upcoming 10 events:");
+        time0 = res.data.items[0].start.dateTime;
+        console.error(time0);
         events.map((event, i) => {
           const start = event.start.dateTime || event.start.date;
           console.log(`${start} - ${event.summary}`);
@@ -141,4 +145,15 @@ function listEvents(auth) {
       }
     }
   );
+  return time0;
+}
+
+function main(auth) {
+  var starttime = moment();
+  var endtime = starttime.clone().add(1, "hour");
+  var aux = listEvents()
+  starttime.format();
+  endtime.format();
+  
+  createEvents(auth,starttime,endtime);
 }
